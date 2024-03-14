@@ -1,360 +1,269 @@
 import pygame
 import random
+import copy
 
-width, height = 600, 600
-rows, columns = 16,16
+# Constants
+GRID_SIZE = 8
+CELL_SIZE = 50
+WIN_SIZE = GRID_SIZE * CELL_SIZE
+ROBOT_COLORS = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+TARGET_COLOR = (255, 0, 0)
+WALL_COLOR = (255, 255, 0)
+BG_COLOR = (0, 0, 0)
 
-square_size = width//columns
+class Square:
+    def __init__(self, x, y, walls):
+        self.x = x # position x of the square
+        self.y = y # position y of the square
+        self.walls = {'n': False, 's': False, 'e': False, 'w': False} # walls=false means that there is no wall
+        self.occupied_by = None # None when it is empty, Robot number when it contains a robot
+        self.is_goal = None # flag that states if it is a goal
 
-red = (255,105,97)
-white = (255,255,255)
-black = (20,20,20)
-grey = (128,128,128)
-blue = (59,131,189)
-green = (0,255,0)
-yellow = (255,255,0)
-purple = (163,73,164)
-brown = (128,64,0)
+    def drawSquare(self, win):
+        rect = pygame.Rect(self.x * CELL_SIZE, self.y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+        pygame.draw.rect(win, (255, 255, 255), rect, 1)
 
-colors = [red,blue,green,yellow]
+        # Draw walls based on self.walls
+        wall_thickness = 5  # Adjust this value for desired wall thickness
+        if self.walls['n']:
+            pygame.draw.line(win, WALL_COLOR, (rect.left, rect.top), (rect.right, rect.top), wall_thickness)
+        if self.walls['s']:
+            pygame.draw.line(win, WALL_COLOR, (rect.left, rect.bottom), (rect.right, rect.bottom), wall_thickness)
+        if self.walls['e']:
+            pygame.draw.line(win, WALL_COLOR, (rect.right, rect.top), (rect.right, rect.bottom), wall_thickness)
+        if self.walls['w']:
+            pygame.draw.line(win, WALL_COLOR, (rect.left, rect.top), (rect.left, rect.bottom), wall_thickness)
 
-start_positions = [(1,1),(0,2)]
-end_positions = [(2,1),(0,3)]
-orientations = ['vertical', 'horizontal']
+        if self.occupied_by is not None:
+            color = ROBOT_COLORS[self.occupied_by]
+            pygame.draw.circle(win, color, (self.x * CELL_SIZE + CELL_SIZE // 2, self.y * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // 2 - 5)
+        else: 
+            pygame.draw.circle(win, (0,0,0), (self.x * CELL_SIZE + CELL_SIZE // 2, self.y * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // 2 - 5)
+        
+        if self.is_goal:
+            pygame.draw.rect(win, TARGET_COLOR, rect)
 
-num_pieces = 4
-num_objetives = 4
-num_walls = 3
+    def add_robot(self, r):
+        self.occupied_by = r
 
-# crown = pygame.transform.scale(pygame.image.load('corona.png'), (45,25))
+    def remove_robot(self):
+        self.occupied_by = None
+    
+    def add_wall(self, walls):
+        self.walls = walls
 
+    def add_goal(self):
+        self.is_goal = True
 
+    def is_occupied(self, name_robot):
+        if self.occupied_by!=name_robot and self.occupied_by is not None:
+            return True
+        else: return False
+       # return self.occupied_by
 
-class Wall:
-    def __init__(self, start_pos, end_pos, orientation):
-        self.start_pos = start_pos  # Posición inicial de la pared (fila, columna)
-        self.end_pos = end_pos  # Posición final de la pared (fila, columna)
-        self.orientation = orientation  # Orientación de la pared: 'horizontal' o 'vertical'
-        self.color = black  # Color de la pared definido previamente
+    def get_wall(self,direction):
+        return self.walls[direction]
+    
+
+    
+
+class State: # State is a state
+    def __init__(self):
+        self.grid = [] 
+        self.walls = []
+        self.robots = {} # map robot int as key, coordinates as value
+        #self.goal = {} # map goal int as key, coordinates as value, the game usually have only one goal
+        self.ParentState = None
+        for y in range(GRID_SIZE):
+            row = []
+            for x in range(GRID_SIZE):
+                row.append(Square(x, y, self.walls))
+            self.grid.append(row)
+        # square in 0,0
+       # s = self.grid[0][0]
+        #self.populate_board()
 
     def draw(self, win):
-        if self.orientation == 'horizontal':
-            pygame.draw.line(win, self.color, 
-                             (self.start_pos[1] * square_size, self.start_pos[0] * square_size + square_size),
-                             (self.end_pos[1] * square_size , self.end_pos[0] * square_size + square_size), 5)
-        elif self.orientation == 'vertical':
-            pygame.draw.line(win, self.color, 
-                             (self.start_pos[1] * square_size + square_size, self.start_pos[0] * square_size ),
-                             (self.end_pos[1] * square_size + square_size, self.end_pos[0] * square_size ),5)
-
-class Pieces:
-    filled = 5
-    edge = 0
-
-    def __init__(self,fil,col,color):
-        self.fil = fil
-        self.col = col
-        self.color = color
-        self.king = False
-        self.x = 0
-        self.y = 0
-        self.calc_pos()
-
-    def calc_pos(self):
-        self.x = square_size * self.col + square_size // 2
-        self.y = square_size * self.fil + square_size // 2
+        for row in self.grid:
+            for square in row:
+                square.drawSquare(win)
     
-    def make_king(self):
-        self.king = True
+    def setParentState(self, ParentState):
+        self.ParentState = ParentState
 
-    def draw(self,win):
-        radio = square_size//2 - self.filled
-        pygame.draw.circle(win,grey,(self.x,self.y), radio + self.edge)
-        pygame.draw.circle(win,self.color,(self.x,self.y), radio)
-        #if self.king:
-        #    win.blit(crown, (self.x - crown.get_width()//2, self.y - crown.get_height()//2))
-
-    def move(self,fil,col):
-        self.fil = fil
-        self.col = col
-        self.calc_pos()
-
-    def __repr__(self):
-        return str(self.color)
+    def populate_board(self):
+        # add a robot in square 0,0 and some walls
+        s_wall11 = {'n': False, 's': True, 'e': False, 'w': False}
+        s_wall12 = {'n': True, 's': False, 'e': False, 'w': False}
+        s_wall21 = {'n': False, 's': False, 'e': True, 'w': False}
+        s_wall22 = {'n': False, 's': False, 'e': False, 'w': True}
+        self.grid[1][1].add_wall(s_wall11)
+        self.grid[2][1].add_wall(s_wall12)
+        self.grid[2][2].add_wall(s_wall21)
+        self.grid[2][3].add_wall(s_wall22)
+        #print("Created robot "+str(r.getName()))
+        self.grid[2][4].add_robot(2)
+        self.grid[0][0].add_robot(1)
+        self.robots[2] = (4,2)
+        self.robots[1] = (0,0)
+        # define the goal
+        #self.goal[1] = (7,7)
+        self.grid[7][7].add_goal()
     
-class board:
-    def __init__ (self):
-        self.board = []
-        self.red_left = self.white_left = 12
-        self.red_kings = self.white_kings = 0 
-        self.walls = []
-        self.walls2 = []
-        self.crear_board()
+    def populate_board2(self):
+        # add a robot in square 0,0 and some walls
+        s_wall11 = {'n': False, 's': True, 'e': False, 'w': False}
+        s_wall12 = {'n': True, 's': False, 'e': False, 'w': False}
+        s_wall21 = {'n': False, 's': False, 'e': True, 'w': False}
+        s_wall22 = {'n': False, 's': False, 'e': False, 'w': True}
+        self.grid[1][1].add_wall(s_wall11)
+        self.grid[2][1].add_wall(s_wall12)
+        self.grid[2][2].add_wall(s_wall21)
+        self.grid[5][4].add_wall(s_wall22)
+        self.grid[3][3].add_robot(2)
+        self.grid[0][0].add_robot(1)
+        self.robots[2] = (3,3)
+        self.robots[1] = (0,0)
+    
+    def getSquare(self, x, y):
+        return self.grid[x][y]
+    
+    def you_won(self): # check robot position is in goal
+        pass
+        '''for robot_n, robot_pos in self.robots.items():
+            if robot_pos == pos:
+                print("This is robot",robot_n," pos: ",robot_pos[0], robot_pos[1])
+                return robot_n
+        return None '''
+    
+    def move_robot(self, selected_robot, direction):
+        y, x = self.robots[selected_robot]
+        print("I am robot ",selected_robot, " in position",x,y, "and I want to move ",direction)
+        self.grid[x][y].remove_robot()
+        if direction == 'n':
+            while x>=0 and self.grid[x][y].get_wall(direction)!=True:
+                if x==0: break
+                x -= 1
+                # check that the place is not occupied by another robot already
+                if self.grid[x][y].is_occupied(selected_robot):
+                    x += 1
+                    break
+        elif direction == 's':
+            while x<=7 and self.grid[x][y].get_wall(direction)!=True:
+                if x==7: break
+                x += 1
+                if self.grid[x][y].is_occupied(selected_robot):
+                    x -= 1
+                    break
+        elif direction == 'w':
+            while y>=0 and self.grid[x][y].get_wall(direction)!=True:
+                if y==0: break
+                y -=1
+                if self.grid[x][y].is_occupied(selected_robot):
+                    y += 1
+                    break
+        elif direction == 'e':
+            while y<=7 and self.grid[x][y].get_wall(direction)!=True:
+                if y==7: break
+                y += 1
+                if self.grid[x][y].is_occupied(selected_robot):
+                    y -= 1
+                    break
 
-    def add_wall(self,start_pos,end_pos,orientation):
-        self.walls.append(Wall(start_pos,end_pos,orientation))
-
-
-    def draw_cuadrados(self,win):
-        win.fill(white)
-        for fil in range(rows):
-            for col in range(fil % 2, columns, 2):
-                pygame.draw.rect(win,grey,(fil*square_size, col*square_size, square_size, square_size))
-
-    def move(self,pieza,fil,col):
-        self.board[pieza.fil][pieza.col], self.board[fil][col] = self.board[fil][col], self.board[pieza.fil][pieza.col]
-        pieza.move(fil,col)
-
-        if fil == rows - 1 or fil == 0:
-            pieza.make_king()
-            if pieza.color == white:
-                self.white_kings += 1
-            else:
-                self.red_kings += 1
+        self.grid[x][y].add_robot(selected_robot)
         
-    def get_pieza(self,fil,col):
-        return self.board[fil][col]
+        self.robots[selected_robot] = (y,x)
 
-    def crear_board(self):
-        for fil in range(rows):
-            self.board.append([])
-            self.walls2.append([])
-            for col in range(columns):
-                self.board[fil].append(0)
-                self.walls2[fil].append(0)
+    def get_robot_from_pos(self, pos):
+        for robot_n, robot_pos in self.robots.items():
+            if robot_pos == pos:
+                print("This is robot",robot_n," pos: ",robot_pos[0], robot_pos[1])
+                return robot_n
+        return None
         
-        # add the players
-        i = 0
-        while i < num_pieces:
-            fil = random.randint(0,15)
-            col = random.randint(0,15)
-            if self.board[fil][col] == 0:
-                color = colors[i]
-                self.board[fil][col] = Pieces(fil,col,color)
-                i += 1
 
-        # add the walls
-        for j in range(len(start_positions)):
-            self.walls.append(Wall(start_positions[j],end_positions[j],orientations[j]))
-            self.walls2[start_positions[j][0]][end_positions[j][0]] = 1
-            print(self.walls)
-    
-    def draw(self,win):
-        self.draw_cuadrados(win)
-        for fil in range(rows):
-            for col in range(columns):
-                pieza = self.board[fil][col]
-                if pieza != 0:
-                    pieza.draw(win)
+class Game:
+    def __init__(self):
+        self.states = []
+        self.states.append(State())
 
+    def launch_game(self):
+        pygame.init()
+        win = pygame.display.set_mode((WIN_SIZE, WIN_SIZE))
+        pygame.display.set_caption("Ricochet Robots")
+        clock = pygame.time.Clock()
+        state_number = 0
+        selected_robot = None
+  
+        print("You are in state: "+str(state_number))
+        running = True
+        while running:
+            win.fill(BG_COLOR)
+            self.states[state_number].draw(win) # Draw empty board, initial state
 
-        for wall in self.walls:
-            
-            wall.draw(win)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
 
-    
-    def ganador(self):
-        if self.red_left <= 0:
-            return white
-        elif self.white_left <= 0:
-            return red
-        else:
-            return None
-    
-    def get_movements_validos(self,pieza):
-        movements = {}
-        fil = pieza.fil
-        col = pieza.col
-        movements.update(self.can_move(fil,col))
-        return movements
+                elif event.type == pygame.KEYDOWN:
 
+                    if event.key == pygame.K_SPACE: # Start/Reset the game
+                        state_number += 1
+                        print("You are in state: "+str(state_number))
+                        self.states.append(State())
+                        self.states[state_number].populate_board()
 
-    def can_move(self,fil,col):
-        movements = {}
-        fil_available_izq = fil -1 
-        fil_available_der = fil + 1
-        col_available_up = col - 1
-        col_available_down = col + 1
+                    elif event.key == pygame.K_UP and selected_robot: # Go up
+                        state_number += 1
+                        print("You are in state: "+str(state_number))
+                        self.states.append(copy.deepcopy(self.states[state_number-1])) # Copy the parent state in the new state
+                        # Deep copy
+                        self.states[state_number].setParentState(self.states[state_number-1])
+                        self.states[state_number].move_robot(selected_robot,'n')
+                        # I should check that the robot move (check robot position this_state!=parent_state), because if it did not it does not count as new state
+                        #self.states[state_number].populate_board()
+                        
+                    elif event.key == pygame.K_DOWN and selected_robot:
+                        state_number += 1
+                        print("You are in state: "+str(state_number))
+                        self.states.append(copy.deepcopy(self.states[state_number-1])) # Copy the parent state in the new state
+                        self.states[state_number].setParentState(self.states[state_number-1])
+                        self.states[state_number].move_robot(selected_robot,'s')
+                        #self.states[state_number].populate_board2()
 
-        if fil >= 1:
-            while fil_available_izq >= 0 and self.board[fil_available_izq][col] == 0 and self.walls2[fil_available_izq][col] == 0:
-                if self.walls2[fil_available_izq][col] != 0:  # Verificar pared justo al lado
-                    movements[(fil_available_izq + 1, col)] = []  # Permitir estar junto a la pared
-                    break
-                fil_available_izq -= 1 
-            if col == 0:
-                movements[(fil_available_izq,col)] = []
-            else:
-                movements[(fil_available_izq+1,col)] = []
+                    elif event.key == pygame.K_RIGHT and selected_robot:
+                        state_number += 1
+                        print("You are in state: "+str(state_number))
+                        self.states.append(copy.deepcopy(self.states[state_number-1])) # Copy the parent state in the new state
+                        self.states[state_number].setParentState(self.states[state_number-1])
+                        self.states[state_number].move_robot(selected_robot,'e')
+                    
+                    elif event.key == pygame.K_LEFT and selected_robot:
+                        state_number += 1
+                        print("You are in state: "+str(state_number))
+                        self.states.append(copy.deepcopy(self.states[state_number-1])) # Copy the parent state in the new state
+                        self.states[state_number].setParentState(self.states[state_number-1])
+                        self.states[state_number].move_robot(selected_robot,'w')
 
-        if fil < 15:
-            while fil_available_der <= 15 and self.board[fil_available_der][col] == 0 and self.walls2[fil_available_der][col] == 0:
-                if self.walls2[fil_available_der][col] != 0:
-                    movements[(fil_available_der - 1, col)] = []
-                    break
-                fil_available_der += 1
-            movements[(fil_available_der-1,col)] = []
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_pos = pygame.mouse.get_pos()
+                    grid_pos = (mouse_pos[0] // GRID_SIZE//6, mouse_pos[1] // GRID_SIZE//6)
+                    #print(grid_pos[0],grid_pos[1]) # Position
+                    selected_robot = self.states[state_number].get_robot_from_pos(grid_pos)
+                    if selected_robot: print("Selected robot: ",selected_robot)
+                    else: print("You need to select a robot")
 
-        if col >= 1:
-            while col_available_up >= 0 and self.board[fil][col_available_up] == 0 and self.walls2[fil][col_available_up] == 0:
-                if self.walls2[fil][col_available_up] != 0:
-                    movements[(fil, col_available_up + 1)] = []
-                    break
-                col_available_up -= 1
-            if fil == 0:
-                movements[(fil,col_available_up)] = []
-            else:
-                movements[(fil,col_available_up+1)] = [] 
-            
-        if col < 15:
-            while col_available_down <= 15 and self.board[fil][col_available_down] == 0 and self.walls2[fil][col_available_down] == 0:
-                if self.walls2[fil][col_available_down] != 0:
-                    movements[(fil, col_available_down - 1)] = []
-                    break
-                col_available_down += 1
-            movements[(fil,col_available_down-1)] = []
-        return movements
+            pygame.display.flip()
+            clock.tick(60)
 
-        # if fil >= 1:
-        #     while fil_available_izq >= 0 and self.board[fil_available_izq][col] == 0 and self.walls2[fil_available_izq][col] == 0:
-        #         fil_available_izq -= 1 
-        #     if col == 0:
-        #         movements[(fil_available_izq,col)] = []
-        #     else:
-        #         movements[(fil_available_izq+1,col)] = []
-        # if fil < 15:
-        #     while fil_available_der <= 15 and self.board[fil_available_der][col] == 0 and self.walls2[fil_available_der][col] == 0:
-        #         fil_available_der += 1 
-        #     movements[(fil_available_der-1,col)] = []
-        # if col >= 1:
-        #     while col_available_up >= 0 and self.board[fil][col_available_up] == 0 and self.walls2[fil][col_available_up] == 0:
-        #         col_available_up -= 1
-        #     if fil == 0:
-        #         movements[(fil,col_available_up)] = []
-        #     else:
-        #         movements[(fil,col_available_up+1)] = [] 
-            
-        # if col < 15:
-        #     while col_available_down <= 15 and self.board[fil][col_available_down] == 0 and self.walls2[fil][col_available_down] == 0:
-        #         col_available_down += 1 
-        #     movements[(fil,col_available_down-1)] = []
-        # return movements    
+            # Here we check the goal
+            if self.states[state_number].you_won():
+                print("YOU WIN!!!")
+                pygame.time.wait(3000)  # Wait for 2 seconds before closing the game
+                break        
 
-    # def can_move(self,fil,col):
-    #     movements = {}
-    #     fil_available_izq = fil -1 
-    #     fil_available_der = fil + 1
-    #     col_available_up = col - 1
-    #     col_available_down = col + 1
+        pygame.quit()
 
-    #     if fil > 1:
-    #         while fil_available_izq > 0 and self.board[fil_available_izq-1][col] == 0 and self.walls2[fil_available_izq][col] == 0:
-    #             fil_available_izq -= 1 
-    #         movements[(fil_available_izq,col)] = []
-    #     if fil < 15:
-    #         while fil_available_der < 15 and self.board[fil_available_der+1][col] == 0 and self.walls2[fil_available_der][col] == 0:
-    #             fil_available_der += 1 
-    #         movements[(fil_available_der,col)] = []
-    #     if col > 1:
-    #         while col_available_up > 0 and self.board[fil][col_available_up-1] == 0 and self.walls2[fil][col_available_up] == 0:
-    #             col_available_up -= 1 
-    #         movements[(fil,col_available_up)] = []
-    #     if col < 15:
-    #         while col_available_down < 15 and self.board[fil][col_available_down+1] == 0 and self.walls2[fil][col_available_down] == 0:
-    #             col_available_down += 1 
-    #         movements[(fil,col_available_down)] = []
-    #     return movements    
-
-    
-
-
- 
-    
-class Juego:
-    def __init__(self,win):
-        self._init()
-        self.win = win
-
-    def update(self):
-        self.board.draw(self.win)
-        self.draw_movements_validos(self.movements_validos)
-        pygame.display.update()
-    
-    def _init(self):
-        self.selected = None
-        self.board = board()
-        self.movements_validos = {}
-
-    def ganador(self):
-        return self.board.ganador()
-    
-    def reset(self):
-        self._init()
-
-    def select(self,fil,col):
-        if self.selected:
-            result = self._move(fil,col)
-            if not result:
-                self.selected = None
-                self.select(fil,col)
-
-        pieza = self.board.get_pieza(fil,col)
-        if pieza != 0:
-            self.selected = pieza
-            self.movements_validos = self.board.get_movements_validos(pieza)
-            return True
-        return False
-    
-    def _move(self,fil,col):
-        pieza = self.board.get_pieza(fil,col)
-        if self.selected and pieza == 0 and (fil,col) in self.movements_validos:
-            self.board.move(self.selected, fil, col)
-            skipped = self.movements_validos[(fil,col)]
-            if skipped:
-                self.board.eliminar(skipped)
-        else:
-            return False
-        return True
-    
-    def draw_movements_validos(self,movements):
-        for move in movements:
-            fil, col = move
-            pygame.draw.circle(self.win, purple, (col*square_size + square_size//2, fil*square_size + square_size//2), 15)
-
-
-
-
-fps = 60
-win = pygame.display.set_mode((width, height))
-pygame.display.set_caption('game')
-
-
-def get_fil_col_from_mouse(pos):
-    x,y = pos
-    fil = y // square_size
-    col = x // square_size
-    return fil,col
-
-def main():
-    run = True
-    clock = pygame.time.Clock()
-    game = Juego(win)
-
-    while run:
-        clock.tick(fps)
-        if game.ganador() != None:
-            print(game.ganador())
-            run = False
-
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
-            
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                pos = pygame.mouse.get_pos()
-                fil, col = get_fil_col_from_mouse(pos)
-                game.select(fil,col)
-        game.update()
-    pygame.quit()
-main()
+# Launch the game
+game = Game()
+game.launch_game()
