@@ -412,6 +412,7 @@ class RicochetRobots:
             previous_value = value[0]
             previous_value2 = value[1]
         path.append((direction, current_node))  # add goal node to the path
+        print("States generated: ",len(path))
         return path                 
     
     def calculate_combined_cost(self, node, goal_node):
