@@ -3,7 +3,6 @@ from collections import deque
 import random
 import time
 
-
 # Constants
 SCREEN_WIDTH = 480
 SCREEN_HEIGHT = 480
@@ -73,7 +72,7 @@ class RicochetRobots:
             self.walls.add(i)
 
     def place_walls_3(self):
-        ### LEVEL 3 (non working) ###
+        ### LEVEL 3 - Does not contain a valid solution
         walls_list = [(14, 4), (3, 4), (12, 10), (14, 1), (3, 10), (4, 15), (11, 2), (10, 0), 
             (2, 8), (2, 14), (6, 11), (7, 10), (3, 0), (12, 6), (4, 8), (4, 14), (3, 6), 
             (3, 15), (5, 12), (8, 8), (2, 4), (13, 4), (9, 13), (10, 8), (13, 1), (15, 4),
@@ -143,12 +142,6 @@ class RicochetRobots:
             self.colored_robots[i] = (x, y, players_colors[i])
             self.initial_positions[i] = (x,y,players_colors[i])
             self.already_visited[0].append((x,y,players_colors[i]))
-        print(self.already_visited) 
-
-        # RED = (255, 0, 0)
-        # BLUE = (59,131,189)
-        # GREEN = (0,255,0)
-        # YELLOW = (255,255,0)
 
     def place_robots_1(self):
         ### LEVEL 1 ###
@@ -183,7 +176,7 @@ class RicochetRobots:
         self.already_visited[0].append((15,0,(255,255,0)))
       
     def place_robots_3(self):
-        ### LEVEL 3 (non working) ###
+        ### LEVEL 3 - Does not contain a valid solution
         self.robots[0] = (8, 4)
         self.robots[1] = (3, 1)
         self.robots[2] = (11, 11)
@@ -197,18 +190,51 @@ class RicochetRobots:
         self.initial_positions[2] = (11, 11, (255, 255, 0))
         self.initial_positions[3] = (7, 2, (0, 255, 0))
         self.already_visited[0].append((8, 4, (255, 0, 0)))
-        print(self.already_visited)
-        
+  
+    # draw the board - function used by AI and User
+    def draw_board(self, screen):
+        for i in range(self.size):
+            for j in range(self.size):
+                pygame.draw.rect(screen, WHITE, (j * GRID_SIZE, i * GRID_SIZE, GRID_SIZE, GRID_SIZE), 1)
+                for _, (robot_x, robot_y, color) in self.colored_robots.items():
+                    if (i, j) == (robot_x, robot_y):
+                        pygame.draw.circle(screen, color, (j * GRID_SIZE + GRID_SIZE // 2, i * GRID_SIZE + GRID_SIZE // 2), GRID_SIZE // 3)
+                if (i, j) == self.target:
+                    pygame.draw.rect(screen, self.target_color, (j * GRID_SIZE, i * GRID_SIZE, GRID_SIZE, GRID_SIZE), 0)
+                elif (i, j) in self.walls:
+                    pygame.draw.rect(screen, GRAY, (j * GRID_SIZE, i * GRID_SIZE, GRID_SIZE, GRID_SIZE))
 
-    # check if there is a colision with 2 different robots
+    # check if there is a colision with 2 different robots - function used by AI and User
     def check_collision(self, position, robot):
         for robot_id, pos in self.robots.items():
             if pos == position and robot_id != robot:
                 return True
         return False
     
-    # function used by BFS and DFS to move the robot
-    # onced it is moved, it will saved it in the self.robots function
+    # function to move robots when the User is playing the game
+    def move_robot(self, direction):
+        if not self.game_over and self.selected_robot is not None:
+            x, y = self.robots[self.selected_robot]
+            if direction == 'up':
+                while x > 0 and (x-1, y) not in self.walls and not self.check_collision(self.selected_robot, (x - 1, y)):
+                    x -= 1
+            elif direction == 'down':
+                while x < self.size -1 and (x + 1, y) not in self.walls and not self.check_collision(self.selected_robot, (x + 1, y)):
+                    x += 1
+            elif direction == 'left':
+                while y > 0 and (x, y - 1) not in self.walls and not self.check_collision(self.selected_robot, (x, y - 1)):
+                    y -= 1
+            elif direction == 'right':
+                while y < self.size - 1 and (x, y + 1) not in self.walls and not self.check_collision(self.selected_robot, (x, y + 1)):
+                    y += 1
+            self.robots[self.selected_robot] = (x, y)
+            color = self.colored_robots[self.selected_robot][2]
+            self.colored_robots[self.selected_robot] = (x, y, color)
+
+            if (x, y) == self.target and color == self.target_color:
+                self.game_over = True
+    
+    # function used by our AI to move the robot
     def move_in_direction(self, start_pos, direction, current_robot):
         # Move from start_pos in the specified direction until an obstacle is hit
         x, y = start_pos
@@ -227,8 +253,7 @@ class RicochetRobots:
         self.robots[current_robot] = (x,y)
         return (x, y)
 
-
-    # apply BFS
+    # apply BFS for our AI
     def bfs(self):
         target_robot_ids = [robot_id for robot_id, (_, _, color) in self.initial_positions.items() if color == self.target_color]
 
@@ -259,7 +284,7 @@ class RicochetRobots:
 
         return None  # No path found
 
-    # apply DFS
+    # apply DFS for our AI
     def dfs(self):
         target_robot_id = None
         for robot_id, (_, _, color) in self.initial_positions.items():
@@ -289,7 +314,7 @@ class RicochetRobots:
 
         return None  # No path found
     
-    # apply Greedy Best-First Search algorithm with Manhattan distance heuristic
+    # apply Greedy Best-First Search algorithm with Manhattan distance heuristic for our AI
     def greedy_best_first_search(self):
         target_robot_id = None
         for robot_id, (_, _, color) in self.initial_positions.items():
@@ -346,7 +371,7 @@ class RicochetRobots:
         return None  # No path found
 
 
-    # apply A* algorithm with Manhattan distance heuristic
+    # apply A* algorithm with Manhattan distance heuristic for our AI
     def A_star(self):
         target_robot_id = None
         for robot_id, (_, _, color) in self.initial_positions.items():
@@ -400,8 +425,9 @@ class RicochetRobots:
 
         return None  # No path found
     
+    # function to reconstruct the path when it finds a solution for our AI
     def reconstruct_path(self,parents, direction, current_node):
-        # Reconstruct the path
+
         sorted_dict = dict(sorted(parents.items()))
         previous_value = None
         previous_value2 = None
@@ -429,46 +455,8 @@ class RicochetRobots:
         # Calculate the heuristic estimate (Manhattan distance) of the cost from the node to the goal node
         heuristic = abs(node[0] - goal_node[0]) + abs(node[1] - goal_node[1])
         return heuristic
-    
-    # function to move robots when the user wants to move a robot. Look that is similar to move_in_direction except for the fact that
-    # it also saves the movement in self.colored_robots so that the movement is shown in the screen
-    def move_robot(self, direction):
-        if not self.game_over and self.selected_robot is not None:
-            x, y = self.robots[self.selected_robot]
-            if direction == 'up':
-                while x > 0 and (x-1, y) not in self.walls and not self.check_collision(self.selected_robot, (x - 1, y)):
-                    x -= 1
-            elif direction == 'down':
-                while x < self.size -1 and (x + 1, y) not in self.walls and not self.check_collision(self.selected_robot, (x + 1, y)):
-                    x += 1
-            elif direction == 'left':
-                while y > 0 and (x, y - 1) not in self.walls and not self.check_collision(self.selected_robot, (x, y - 1)):
-                    y -= 1
-            elif direction == 'right':
-                while y < self.size - 1 and (x, y + 1) not in self.walls and not self.check_collision(self.selected_robot, (x, y + 1)):
-                    y += 1
-            self.robots[self.selected_robot] = (x, y)
-            color = self.colored_robots[self.selected_robot][2]  # Obtiene el color actual del robot
-            self.colored_robots[self.selected_robot] = (x, y, color)
 
-            if (x, y) == self.target and color == self.target_color:
-                self.game_over = True
-  
-    # draw the board
-    def draw_board(self, screen):
-        for i in range(self.size):
-            for j in range(self.size):
-                pygame.draw.rect(screen, WHITE, (j * GRID_SIZE, i * GRID_SIZE, GRID_SIZE, GRID_SIZE), 1)
-                for _, (robot_x, robot_y, color) in self.colored_robots.items():
-                    if (i, j) == (robot_x, robot_y):
-                        pygame.draw.circle(screen, color, (j * GRID_SIZE + GRID_SIZE // 2, i * GRID_SIZE + GRID_SIZE // 2), GRID_SIZE // 3)
-                if (i, j) == self.target:
-                    pygame.draw.rect(screen, self.target_color, (j * GRID_SIZE, i * GRID_SIZE, GRID_SIZE, GRID_SIZE), 0)
-                elif (i, j) in self.walls:
-                    pygame.draw.rect(screen, GRAY, (j * GRID_SIZE, i * GRID_SIZE, GRID_SIZE, GRID_SIZE))
-
-    # function to move a robot and then saved it in the intial positions (as well as the colored_robots). This is used when we don't 
-    # find a solution and we have to move a robot to start looking for another solution
+    # function to move other robots (non-main one) and then saved it in the intial positions (as well as the colored_robots) for our AI
     def move_robot2(self, robot, direction):
         if not self.game_over:
             x, y = self.initial_positions[robot][:2]
@@ -492,7 +480,7 @@ class RicochetRobots:
             if (x, y) == self.target and color == self.target_color:
                 self.game_over = True
 
-    # moves a robot to find another solution
+    # function that change the selected robot (non-main one) for our AI
     def change_robot(self):
         target_robot_id = None
         for robot_id, (_, _, color) in self.initial_positions.items():
@@ -515,13 +503,12 @@ def main():
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Ricochet Robots")
-
     game = RicochetRobots()
+
+    # Change the next 3 lines to select different levels (existing levels: random, 1, 2, 3)
     game.place_walls_1()
     game.place_robots_1()
     game.place_target_1()
-
-    running = True
 
     clock = pygame.time.Clock()
     screen.fill(WHITE)
@@ -529,76 +516,88 @@ def main():
     pygame.display.flip()
     clock.tick(60)
     font = pygame.font.Font(None, 36)
-
-    # if a path has not been found, it calls game.change_robot() and start looking for another path
-    not_found = True
+    User_play = True
+    AI_play = False
     start_time = time.time_ns()
-    while not_found:
-        #path = game.dfs() # DFS algorithm
-        path = game.bfs() # BFS algorithm
+
+    # AI is playing
+    while AI_play:
+        path = game.dfs() # DFS algorithm
+        #path = game.bfs() # BFS algorithm
         #path = game.A_star() # A* algorithm
         #path = game.greedy_best_first_search() # GBFS algorithm
         if path is not None:
             end_time = time.time_ns()
             elapsed_time = end_time - start_time
             print("Time taken to find a solution:", elapsed_time, "nanoseconds")
-            print(f"Path to the target for robot with color {game.target_color}: {path}")
-            not_found = False
+            print("AI takes ",len(path), "moves to find a solution")
+            AI_play = False
             i = 0
             # Draw the path on the screen
             for direction, pos in path:
                 pygame.draw.circle(screen, BLACK, (pos[1] * GRID_SIZE + GRID_SIZE // 2, pos[0] * GRID_SIZE + GRID_SIZE // 2), GRID_SIZE // 2)
-                # Render the text
                 i += 1
                 text_surface = font.render(str(i), True, RED)
                 text_rect = text_surface.get_rect(center=(pos[1] * GRID_SIZE + GRID_SIZE // 2, pos[0] * GRID_SIZE + GRID_SIZE // 2))
-                # Blit the text onto the screen
                 screen.blit(text_surface, text_rect)
                 pygame.display.flip()
-                pygame.time.delay(1000)  # Delay for visualization
+                pygame.time.delay(1000)
             
         else:
-            print("No path found.")
+            # if a path has not been found, it calls game.change_robot() that will moves other robots (non-main one) and start looking for a solution again
+            print("Solution not found, I will try to move other robots")
             game.change_robot()   
             clock = pygame.time.Clock()
             screen.fill(WHITE)
             game.draw_board(screen)
             pygame.display.flip()
+            passed_time = time.time_ns()-start_time
+            if passed_time>300000000000:
+                print("I did not find any solution in the past 5 minutes")
+                AI_play = False
 
-
-    while running:
+    moves = 0
+    # User is playing
+    while User_play:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
+                User_play = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
                     game.move_robot('up')
+                    moves += 1
                 elif event.key == pygame.K_DOWN:
                     game.move_robot('down')
+                    moves += 1
                 elif event.key == pygame.K_LEFT:
                     game.move_robot('left')
+                    moves += 1
                 elif event.key == pygame.K_RIGHT:
                     game.move_robot('right')
+                    moves += 1
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
                 grid_pos = (mouse_pos[1] // GRID_SIZE, mouse_pos[0] // GRID_SIZE)
                 for robot_id, robot_pos in game.robots.items():
                     if robot_pos == grid_pos:
                         game.selected_robot = robot_id
+        screen.fill(WHITE)
+        game.draw_board(screen)
+        pygame.display.flip()
+        clock.tick(60)
 
-        # screen.fill(WHITE)
-        # game.draw_board(screen)
-        # pygame.display.flip()
-        # clock.tick(60)
-
-        if game.game_over:
+        if game.game_over: 
+            elapsed_time = time.time_ns() - start_time
+            print("Time taken to find a solution:", elapsed_time, "nanoseconds")
             font = pygame.font.Font(None, 36)
             text = font.render("You Win!", True, BLACK)
+            print("User takes ",moves, "moves to find a solution")
             screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 2 - text.get_height() // 2))
             pygame.display.flip()
-            pygame.time.wait(2000)  # Wait for 2 seconds before closing the game
+            pygame.time.wait(5000)
             break
 
+    pygame.time.wait(5000) # visualization time before closing the game
     pygame.quit()
 
 if __name__ == "__main__":
