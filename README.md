@@ -1,7 +1,7 @@
-####### RICOCHET ROBOTS GAME #######
+###### RICOCHET ROBOTS GAME ######
 Ricochet Robots is a challenging puzzle game where the goal is to navigate robots through a maze to a target location. This Python version uses the Pygame library for its graphical interface and offers various algorithms for robot navigation.
 
-####### Prerequisites #######
+###### Prerequisites ######
 Before you start, ensure you have the following installed:
 
 - Python 3.6 or newer
@@ -27,9 +27,9 @@ Replace the method number with the desired level number or use the random method
 This game supports multiple pathfinding algorithms. To select an algorithm, uncomment the corresponding line in the "while AI_play:" loop:
 
 path = game.dfs()  # Depth-First Search
-# path = game.bfs()  # Breadth-First Search
-# path = game.A_star()  # A* Search
-# path = game.greedy_best_first_search()  # Greedy Best-First Search
+path = game.bfs()  # Breadth-First Search
+path = game.A_star()  # A* Search
+path = game.greedy_best_first_search()  # Greedy Best-First Search
 
 By default, the Depth-First Search (DFS) algorithm is used.
 
