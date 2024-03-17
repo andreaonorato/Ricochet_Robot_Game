@@ -535,9 +535,9 @@ def main():
     game = RicochetRobots()
 
     # Change the next 3 lines to select different levels (existing levels: random, 1, 2, 3, 4)
-    game.place_walls_2()
-    game.place_robots_2()
-    game.place_target_2()
+    game.place_walls_4()
+    game.place_robots_4()
+    game.place_target_4()
 
     clock = pygame.time.Clock()
     screen.fill(WHITE)
@@ -545,8 +545,8 @@ def main():
     pygame.display.flip()
     clock.tick(60)
     font = pygame.font.Font(None, 36)
-    User_play = False
-    AI_play = True
+    User_play = False # Change to True if you want the User to play
+    AI_play = True # Change to True if you want the AI to play
     start_time = time.time_ns()
 
     # AI is playing
@@ -559,7 +559,6 @@ def main():
             end_time = time.time_ns()
             elapsed_time = end_time - start_time
             print("Time taken to find a solution:", elapsed_time, "nanoseconds")
-            print("AI takes ",len(path), "moves to find a solution")
             AI_play = False
             i = 0
             # Draw the path on the screen
@@ -626,7 +625,7 @@ def main():
             pygame.time.wait(5000)
             break
 
-    pygame.time.wait(5000) # visualization time before closing the game
+    pygame.time.wait(50000) # visualization time before closing the game
     pygame.quit()
 
 if __name__ == "__main__":
