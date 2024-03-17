@@ -41,7 +41,6 @@ class RicochetRobots:
         # self.initial_position: This attribute stores the initial positions of all robots at the start of the game. It is not updated during the game unless a random robot change occurs due to no path being found. 
         # self.already_visited: This attribute keeps track of all possible combinations of robot positions that have been explored during the search for a path using BFS. Each combination is recorded once it's explored to avoid revisiting the same position configurations. This helps prevent the algorithm from getting stuck in loops or redundant searches.
 
-
     # function to place walls randomly in the board (change number_of_walls to put more or less walls)
     def place_walls_random(self):
         number_of_walls = 50
@@ -67,7 +66,6 @@ class RicochetRobots:
                     (13, 7), (1, 11), (0, 13), (7, 0), (1, 8), (15, 1), (13, 13), (7, 12), 
                     (3, 5), (5, 2), (9, 0), (10, 4), (9, 12), (11, 9), (10, 13), (7, 11), 
                     (1, 10), (13, 12), (6, 6), (7, 5), (15, 12)]
-
         for i in walls_list:
             self.walls.add(i)
 
@@ -78,10 +76,15 @@ class RicochetRobots:
             (3, 15), (5, 12), (8, 8), (2, 4), (13, 4), (9, 13), (10, 8), (13, 1), (15, 4),
             (0, 13), (2, 10), (15, 7), (7, 6), (12, 11), (14, 5), (3, 11), (3, 14), (4, 13), 
             (1, 1), (9, 12), (13, 0), (9, 15), (8, 13), (2, 3), (15, 0), (15, 9), (6, 9)]
-
         for i in walls_list:
             self.walls.add(i)
-       
+
+    def place_walls_4(self):
+            # LEVEL 4
+            mylist = [(4,0), (0,3),(1,4), (3,7), (7,6), (6,9),(11,8),(10,10),(14,9),(13,15),(14,14),
+                      (8,0),(12,0),(15,3),(15,6), (15,8),(14,0)]
+            for i in mylist:
+                self.walls.add(i)
         
     # function to place the target (this function first put a target in a random cell, and then it creates to walls next to it, so that
     # both walls form a corner and it is easier to find a solution )
@@ -131,6 +134,11 @@ class RicochetRobots:
         self.target = (10,3)
         self.target_color = (0,255,0)
 
+    def place_target_4(self):
+        ### LEVEL 4 ###
+        self.target = (13,14)
+        self.target_color = (255,0,0)
+
 
     # function to place robots randomly in the board
     def place_robots_random(self):
@@ -144,7 +152,7 @@ class RicochetRobots:
             self.already_visited[0].append((x,y,players_colors[i]))
 
     def place_robots_1(self):
-        ### LEVEL 1 ###
+        ### LEVEL 1
         self.robots[0] = (6,3)
         self.robots[1] = (15,2)
         self.robots[2] = (9,2)
@@ -160,7 +168,7 @@ class RicochetRobots:
         self.already_visited[0].append((6,3,(255,0,0)))
         
     def place_robots_2(self):
-        ### LEVEL 2 ###
+        ### LEVEL 2
         self.robots[0] = (15,0)
         self.robots[1] = (14,4)
         self.robots[2] = (1,1)
@@ -191,6 +199,28 @@ class RicochetRobots:
         self.initial_positions[3] = (7, 2, (0, 255, 0))
         self.already_visited[0].append((8, 4, (255, 0, 0)))
   
+    def place_robots_4(self):
+            ### LEVEL 4
+            self.robots[0] = (0,0)
+            self.robots[1] = (15,2)
+            self.robots[2] = (9,2)
+            self.robots[3] = (6,4)
+            self.colored_robots[0] = (0,0,(255,0,0))
+            self.colored_robots[1] = (15,2,(255,255,0))
+            self.colored_robots[2] = (9,2,(0,255,0))
+            self.colored_robots[3] = (6,4,(59,131,189))
+            self.initial_positions[0] = (0,0,(255,0,0))
+            self.initial_positions[1] = (15,2,(255,255,0))
+            self.initial_positions[2] = (9,2,(0,255,0))
+            self.initial_positions[3] = (6,4,(59,131,189))
+            self.already_visited[0].append((0,0,(255,0,0)))
+
+
+
+
+
+
+
     # draw the board - function used by AI and User
     def draw_board(self, screen):
         for i in range(self.size):
@@ -427,7 +457,6 @@ class RicochetRobots:
     
     # function to reconstruct the path when it finds a solution for our AI
     def reconstruct_path(self,parents, direction, current_node):
-
         sorted_dict = dict(sorted(parents.items()))
         previous_value = None
         previous_value2 = None
@@ -505,10 +534,10 @@ def main():
     pygame.display.set_caption("Ricochet Robots")
     game = RicochetRobots()
 
-    # Change the next 3 lines to select different levels (existing levels: random, 1, 2, 3)
-    game.place_walls_1()
-    game.place_robots_1()
-    game.place_target_1()
+    # Change the next 3 lines to select different levels (existing levels: random, 1, 2, 3, 4)
+    game.place_walls_2()
+    game.place_robots_2()
+    game.place_target_2()
 
     clock = pygame.time.Clock()
     screen.fill(WHITE)
@@ -516,8 +545,8 @@ def main():
     pygame.display.flip()
     clock.tick(60)
     font = pygame.font.Font(None, 36)
-    User_play = True
-    AI_play = False
+    User_play = False
+    AI_play = True
     start_time = time.time_ns()
 
     # AI is playing
