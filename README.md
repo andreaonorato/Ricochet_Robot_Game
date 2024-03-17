@@ -27,9 +27,13 @@ Replace the method number with the desired level number or use the random method
 This game supports multiple pathfinding algorithms. To select an algorithm, uncomment the corresponding line in the "while AI_play:" loop:
 
 path = game.dfs()  # Depth-First Search
+
 path = game.bfs()  # Breadth-First Search
+
 path = game.A_star()  # A* Search
+
 path = game.greedy_best_first_search()  # Greedy Best-First Search
+
 
 By default, the Depth-First Search (DFS) algorithm is used.
 
