@@ -1,4 +1,4 @@
-###### RICOCHET ROBOTS GAME ######
+### RICOCHET ROBOTS GAME ###
 Ricochet Robots is a challenging puzzle game where the goal is to navigate robots through a maze to a target location. This Python version uses the Pygame library for its graphical interface and offers various algorithms for robot navigation.
 
 ###### Prerequisites ######
