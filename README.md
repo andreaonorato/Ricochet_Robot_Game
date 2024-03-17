@@ -43,5 +43,5 @@ The game can be played in two modes: AI or user.
 AI Play: To let the AI solve the puzzle, ensure AI_play is set to "True" and User_play is set to "False".
 User Play: To play the game yourself, set User_play to "True" and AI_play to "False". Select the robot by clicking on it and use the arrow keys to move it.
 
-###### Game Over ######
+#### Game Over ####
 The game concludes when the target is reached with the correct robot. For AI mode, the path taken will be displayed on the screen. For user mode, the game will display a "You Win!" message.
