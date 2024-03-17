@@ -625,7 +625,7 @@ def main():
             pygame.time.wait(5000)
             break
 
-    pygame.time.wait(50000) # visualization time before closing the game
+    pygame.time.wait(5000) # visualization time before closing the game
     pygame.quit()
 
 if __name__ == "__main__":
